@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>🍳 Kitchen System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <style>
+        body {
+          font-family: Arial;
+          background: #111;
+          color: white;
+          padding: 20px;
+        }
+        
+        h2 {
+          text-align: center;
+        }
+        
+        .order {
+          background: #222;
+          padding: 15px;
+          margin: 10px 0;
+          border-radius: 10px;
+          border-left: 5px solid #00ff88;
+        }
+        
+        .time {
+          font-size: 12px;
+          opacity: 0.6;
+          margin-top: 5px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h2>🍳 Kitchen Display</h2>
+
+    <div id="orders"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, query } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        
+        // 🔑 Firebase config
+        const firebaseConfig = {
+          apiKey: "AIzaSyBNk0S-ArNKrK_fmUZJb6K2U2252rT5FNU",
+          authDomain: "restaurant-app-bc3c1.firebaseapp.com",
+          projectId: "restaurant-app-bc3c1",
+          storageBucket: "restaurant-app-bc3c1.firebasestorage.app",
+          messagingSenderId: "25868708085",
+          appId: "1:25868708085:web:5585774b7ede6ecd127dbc"
+        };
+        
+        // init
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const ordersDiv = document.getElementById("orders");
+        
+        // 🔔 请求系统通知权限
+        Notification.requestPermission();
+        
+        // 🧠 防止重复通知
+        let notified = new Set();
+        
+        // 📡 监听订单
+        const q = query(collection(db, "orders"));
+        
+        onSnapshot(q, (snapshot) => {
+        
+          snapshot.docChanges().forEach(change => {
+        
+            if (change.type === "added") {
+        
+              const id = change.doc.id;
+              const data = change.doc.data();
+        
+              // 🧠 防重复
+              if (!notified.has(id)) {
+                notified.add(id);
+        
+                // 🍳 显示在页面
+                const div = document.createElement("div");
+                div.className = "order";
+        
+                div.innerHTML = `
+                  🪑 Table: ${data.table}<br>
+                  🍔 Item: ${data.item}<br>
+                  🔢 Qty: ${data.qty}
+                  <div class="time">${new Date(data.time).toLocaleTimeString()}</div>
+                `;
+        
+                ordersDiv.prepend(div);
+        
+                // 🔔 系统通知
+                if (Notification.permission === "granted") {
+                  new Notification("🍔 New Order", {
+                    body: `Table ${data.table} - ${data.item} x${data.qty}`
+                  });
+                }
+        
+                // 🔊 声音提示
+                new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg").play();
+              }
+            }
+        
+          });
+        
+        });
+        
+    </script>
+
+</body>
+
+</html>
