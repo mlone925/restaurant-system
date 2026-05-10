@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+    <title>KITCHEN-SYSTEM</title>
+
+    <style>
+        *{
+          margin:0;
+          padding:0;
+          box-sizing:border-box;
+          font-family:Arial,sans-serif;
+          -webkit-tap-highlight-color: transparent;
+        }
+        
+        body{
+          background:#f4f4f4;
+          padding:18px;
+          padding-bottom:100px;
+          user-select:none;
+        }
+        
+        /* TOP */
+        .topbar{
+          font-size:28px;
+          font-weight:bold;
+          margin-bottom:20px;
+        }
+        
+        /* FULLSCREEN BUTTON */
+        .fullscreen-btn{
+        
+          position:fixed;
+          top:18px;
+          right:18px;
+        
+          width:44px;
+          height:44px;
+        
+          border-radius:14px;
+        
+          background:#111;
+          color:white;
+        
+          display:flex;
+          align-items:center;
+          justify-content:center;
+        
+          font-size:20px;
+        
+          z-index:9999;
+        
+          cursor:pointer;
+        
+          transition:0.1s;
+        }
+        
+        .fullscreen-btn:active{
+          transform:scale(0.9);
+        }
+        
+        /* ORDER CARD */
+        .order-card{
+        
+          background:white;
+        
+          border-radius:28px;
+        
+          padding:18px;
+        
+          margin-bottom:18px;
+        
+          box-shadow:0 5px 18px rgba(0,0,0,0.08);
+        
+          animation:show 0.2s ease;
+        }
+        
+        @keyframes show{
+          from{opacity:0;transform:scale(0.95);}
+          to{opacity:1;transform:scale(1);}
+        }
+        
+        /* HEADER */
+        .order-header{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          margin-bottom:16px;
+        }
+        
+        .table-box{
+          display:flex;
+          align-items:center;
+          gap:12px;
+        }
+        
+        .table-icon{
+          width:50px;
+          height:50px;
+          border-radius:16px;
+          background:#111;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+        }
+        
+        /* TABLE LOGO */
+        .table-logo{
+          position:relative;
+          width:28px;
+          height:28px;
+        }
+        
+        .table-top{
+          width:28px;
+          height:12px;
+          background:white;
+          border-radius:6px;
+        }
+        
+        .table-leg{
+          position:absolute;
+          width:4px;
+          height:12px;
+          background:white;
+          bottom:0;
+        }
+        
+        .left{left:5px;}
+        .right{right:5px;}
+        
+        .table-title{
+          font-size:22px;
+          font-weight:bold;
+        }
+        
+        .order-time{
+          color:gray;
+          font-size:13px;
+        }
+        
+        /* ITEMS */
+        .items{margin-top:10px;}
+        
+        .item-row{
+          display:flex;
+          justify-content:space-between;
+          align-items:center;
+          padding:14px;
+          border-radius:18px;
+          background:#f8f8f8;
+          margin-bottom:10px;
+        }
+        
+        .item-name{
+          font-size:17px;
+          font-weight:bold;
+        }
+        
+        .item-qty{
+          background:#111;
+          color:white;
+          padding:8px 12px;
+          border-radius:12px;
+          font-size:15px;
+        }
+        
+        /* BUTTON */
+        .done-btn{
+          width:100%;
+          margin-top:14px;
+          padding:16px;
+          border:none;
+          border-radius:18px;
+          background:#111;
+          color:white;
+          font-size:17px;
+        }
+        
+        .done-btn:active{
+          transform:scale(0.96);
+        }
+        
+        /* EMPTY */
+        .empty{
+          text-align:center;
+          color:gray;
+          margin-top:60px;
+          font-size:18px;
+        }
+        
+    </style>
+</head>
+
+<body>
+
+    <!-- FULLSCREEN BUTTON -->
+    <div class="fullscreen-btn" onclick="toggleFullScreen()">
+        ⛶
+    </div>
+
+    <div class="topbar">
+        KITCHEN-SYSTEM
+    </div>
+
+    <div id="ordersContainer">
+
+        <div class="empty">
+            Waiting for orders...
+        </div>
+
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+          getFirestore,
+          collection,
+          onSnapshot,
+          deleteDoc,
+          doc
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        
+        /* FIREBASE */
+        const firebaseConfig = {
+        
+        apiKey: "AIzaSyBNk0S-ArNKrK_fmUZJb6K2U2252rT5FNU",
+        authDomain: "restaurant-app-bc3c1.firebaseapp.com",
+        projectId: "restaurant-app-bc3c1",
+        storageBucket: "restaurant-app-bc3c1.firebasestorage.app",
+        messagingSenderId: "25868708085",
+        appId: "1:25868708085:web:5585774b7ede6ecd127dbc"
+        
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        
+        const container = document.getElementById("ordersContainer");
+        
+        /* REALTIME */
+        onSnapshot(collection(db,"orders"), (snapshot)=>{
+        
+        container.innerHTML = "";
+        
+        if(snapshot.empty){
+        container.innerHTML = `<div class="empty">Waiting for orders...</div>`;
+        return;
+        }
+        
+        snapshot.forEach((docSnap)=>{
+        
+        const data = docSnap.data();
+        
+        let itemsHTML = "";
+        
+        for(let item in data.items){
+        
+        itemsHTML += `
+        <div class="item-row">
+        <div class="item-name">${item}</div>
+        <div class="item-qty">x${data.items[item]}</div>
+        </div>
+        `;
+        }
+        
+        const time = new Date(data.createdAt || Date.now()).toLocaleTimeString();
+        
+        container.innerHTML += `
+        <div class="order-card">
+        
+        <div class="order-header">
+        
+        <div class="table-box">
+        
+        <div class="table-icon">
+        <div class="table-logo">
+        <div class="table-top"></div>
+        <div class="table-leg left"></div>
+        <div class="table-leg right"></div>
+        </div>
+        </div>
+        
+        <div>
+        <div class="table-title">Table ${data.table}</div>
+        <div class="order-time">${time}</div>
+        </div>
+        
+        </div>
+        
+        </div>
+        
+        <div class="items">
+        ${itemsHTML}
+        </div>
+        
+        <button class="done-btn" onclick="finishOrder('${docSnap.id}')">
+        Complete Order
+        </button>
+        
+        </div>
+        `;
+        
+        });
+        
+        });
+        
+        /* COMPLETE */
+        window.finishOrder = async function(id){
+        await deleteDoc(doc(db,"orders",id));
+        };
+        
+        /* FULLSCREEN */
+        let isFull = false;
+        
+        window.toggleFullScreen = function(){
+        
+        if(!isFull){
+        
+        const elem = document.documentElement;
+        
+        if(elem.requestFullscreen){
+        elem.requestFullscreen();
+        }else if(elem.webkitRequestFullscreen){
+        elem.webkitRequestFullscreen();
+        }else if(elem.msRequestFullscreen){
+        elem.msRequestFullscreen();
+        }
+        
+        isFull = true;
+        
+        }else{
+        
+        if(document.exitFullscreen){
+        document.exitFullscreen();
+        }else if(document.webkitExitFullscreen){
+        document.webkitExitFullscreen();
+        }else if(document.msExitFullscreen){
+        document.msExitFullscreen();
+        }
+        
+        isFull = false;
+        }
+        
+        };
+        
+    </script>
+
+</body>
+
+</html>
